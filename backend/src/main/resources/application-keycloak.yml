@@ -1,0 +1,14 @@
+spring:
+  config:
+    activate:
+      on-profile: keycloak
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8082/realms/idv-bursiyer}
+          jwk-set-uri: ${KEYCLOAK_JWK_URI:http://localhost:8082/realms/idv-bursiyer/protocol/openid-connect/certs}
+
+app:
+  security:
+    keycloak-enabled: true

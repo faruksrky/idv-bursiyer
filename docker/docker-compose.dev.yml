@@ -1,0 +1,63 @@
+# Sadece altyapı — IDE geliştirme (IntelliJ + npm run dev)
+name: idv-bursiyer-dev
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: idv-bursiyer-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: idv_bursiyer
+      POSTGRES_USER: idv
+      POSTGRES_PASSWORD: idv_dev
+    ports:
+      - "5434:5432"
+    volumes:
+      - idv_bursiyer_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U idv -d idv_bursiyer"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  keycloak-db:
+    image: postgres:16-alpine
+    container_name: idv-bursiyer-keycloak-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak_dev
+      POSTGRES_DB: keycloak
+    volumes:
+      - idv_keycloak_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.0
+    container_name: idv-bursiyer-keycloak
+    restart: unless-stopped
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak_dev
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_HOSTNAME: http://localhost:8082
+      KC_HTTP_ENABLED: "true"
+    volumes:
+      - ./keycloak/idv-bursiyer-realm.json:/opt/keycloak/data/import/idv-bursiyer-realm.json:ro
+    ports:
+      - "8082:8080"
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+
+volumes:
+  idv_bursiyer_pg_data:
+  idv_keycloak_pg_data:

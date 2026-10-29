@@ -1,0 +1,48 @@
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:postgres}:${DB_PORT:5432}/${DB_NAME:idv_bursiyer}
+    username: ${DB_USER:idv}
+    password: ${DB_PASSWORD:idv_dev}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: Europe/Istanbul
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${KEYCLOAK_ISSUER_URI:http://localhost:8082/realms/idv-bursiyer}
+          jwk-set-uri: ${KEYCLOAK_JWK_URI:http://keycloak:8080/realms/idv-bursiyer/protocol/openid-connect/certs}
+
+server:
+  port: 8080
+  error:
+    include-message: always
+
+app:
+  cors:
+    allowed-origins: ${CORS_ORIGINS:http://localhost:3000,http://127.0.0.1:3000}
+  security:
+    keycloak-enabled: true
+  keycloak:
+    server-url: ${KEYCLOAK_SERVER_URL:http://keycloak:8080}
+    realm: ${KEYCLOAK_REALM:idv-bursiyer}
+    client-id: ${KEYCLOAK_CLIENT_ID:idv-bursiyer-frontend}
+  scholarship:
+    monthly-amount: ${SCHOLARSHIP_AMOUNT:3000}
+  evaluation:
+    interview-pass-threshold: ${INTERVIEW_PASS_THRESHOLD:80}
+    committee-member-count: ${COMMITTEE_MEMBER_COUNT:5}
+    family-income-interview-max: ${FAMILY_INCOME_INTERVIEW_MAX:100000}
+  storage:
+    upload-dir: ${APP_STORAGE_UPLOAD_DIR:/app/uploads}

@@ -1,0 +1,107 @@
+name: idv-bursiyer-takip
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: idv-bursiyer-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-idv_bursiyer}
+      POSTGRES_USER: ${POSTGRES_USER:-idv}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-idv_dev}
+    ports:
+      - "${POSTGRES_PORT:-5434}:5432"
+    volumes:
+      - idv_bursiyer_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-idv} -d ${POSTGRES_DB:-idv_bursiyer}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  keycloak-db:
+    image: postgres:16-alpine
+    container_name: idv-bursiyer-keycloak-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${KEYCLOAK_DB_USER:-keycloak}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_dev}
+      POSTGRES_DB: keycloak
+    volumes:
+      - idv_keycloak_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER:-keycloak} -d keycloak"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.0
+    container_name: idv-bursiyer-keycloak
+    restart: unless-stopped
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB: postgres
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_dev}
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:-http://localhost:8082}
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY_HEADERS: xforwarded
+    volumes:
+      - ./keycloak/idv-bursiyer-realm.json:/opt/keycloak/data/import/idv-bursiyer-realm.json:ro
+    ports:
+      - "${KEYCLOAK_PORT:-8082}:8080"
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    image: idv-bursiyer-backend:latest
+    container_name: idv-bursiyer-backend
+    restart: unless-stopped
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-docker}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-idv_bursiyer}
+      DB_USER: ${POSTGRES_USER:-idv}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-idv_dev}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+      SCHOLARSHIP_AMOUNT: ${SCHOLARSHIP_AMOUNT:-3000}
+      INTERVIEW_PASS_THRESHOLD: ${INTERVIEW_PASS_THRESHOLD:-80}
+      KEYCLOAK_ISSUER_URI: ${KEYCLOAK_ISSUER_URI:-http://localhost:8082/realms/idv-bursiyer}
+      KEYCLOAK_JWK_URI: http://keycloak:8080/realms/idv-bursiyer/protocol/openid-connect/certs
+    ports:
+      - "${BACKEND_PORT:-8081}:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_KEYCLOAK_URL: ${VITE_KEYCLOAK_URL:-http://localhost:8082}
+        VITE_KEYCLOAK_REALM: ${VITE_KEYCLOAK_REALM:-idv-bursiyer}
+        VITE_KEYCLOAK_CLIENT: ${VITE_KEYCLOAK_CLIENT:-idv-bursiyer-frontend}
+    image: idv-bursiyer-frontend:latest
+    container_name: idv-bursiyer-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      - backend
+      - keycloak
+
+volumes:
+  idv_bursiyer_pg_data:
+  idv_keycloak_pg_data:

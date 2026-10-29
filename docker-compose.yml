@@ -1,0 +1,7 @@
+# Proje kökünden tam stack başlatmak için:
+#   docker compose up -d --build
+#
+# Detaylı dokümantasyon: docker/README.md
+
+include:
+  - path: docker/docker-compose.yml

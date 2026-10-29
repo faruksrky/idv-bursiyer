@@ -1,0 +1,44 @@
+# Sadece Keycloak (+ kendi PostgreSQL'i)
+name: idv-bursiyer-keycloak
+
+services:
+  keycloak-db:
+    image: postgres:16-alpine
+    container_name: idv-bursiyer-keycloak-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${KEYCLOAK_DB_USER:-keycloak}
+      POSTGRES_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_dev}
+      POSTGRES_DB: keycloak
+    volumes:
+      - idv_keycloak_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${KEYCLOAK_DB_USER:-keycloak} -d keycloak"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.0
+    container_name: idv-bursiyer-keycloak
+    restart: unless-stopped
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB: postgres
+      KC_DB_USERNAME: ${KEYCLOAK_DB_USER:-keycloak}
+      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD:-keycloak_dev}
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME:-http://localhost:8082}
+      KC_HTTP_ENABLED: "true"
+    volumes:
+      - ./keycloak/idv-bursiyer-realm.json:/opt/keycloak/data/import/idv-bursiyer-realm.json:ro
+    ports:
+      - "${KEYCLOAK_PORT:-8082}:8080"
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+
+volumes:
+  idv_keycloak_pg_data:

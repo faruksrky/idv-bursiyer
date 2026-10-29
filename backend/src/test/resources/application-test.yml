@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:idv_test;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
+
+app:
+  cors:
+    allowed-origins: http://localhost:5173,http://127.0.0.1:5173
+  security:
+    keycloak-enabled: false
+  scholarship:
+    monthly-amount: 3000
+  evaluation:
+    interview-pass-threshold: 80
+    committee-member-count: 5
+    family-income-interview-max: 100000
+  storage:
+    upload-dir: ./uploads-test

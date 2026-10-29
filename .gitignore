@@ -1,0 +1,19 @@
+.DS_Store
+.idea/
+*.iml
+
+# dependencies and build output
+node_modules/
+dist/
+build/
+target/
+
+# secrets and local env
+.env
+.env.*
+!.env.example
+!.env*.example
+
+# local Google Drive link dumps (not application source)
+.drive-ids.txt
+.drive-urls.txt

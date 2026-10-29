@@ -1,0 +1,24 @@
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: jdbc:postgresql://localhost:5434/idv_bursiyer
+    username: idv
+    password: idv_dev
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://localhost:8082/realms/idv-bursiyer
+          jwk-set-uri: http://localhost:8082/realms/idv-bursiyer/protocol/openid-connect/certs
+
+app:
+  cors:
+    allowed-origins: http://localhost:5173,http://127.0.0.1:5173,https://burs.istanbuldostlukvakfi.org
+  security:
+    keycloak-enabled: true
+  keycloak:
+    server-url: http://localhost:8082
+    realm: idv-bursiyer
+    client-id: idv-bursiyer-frontend
